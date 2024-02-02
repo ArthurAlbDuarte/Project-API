@@ -1,26 +1,26 @@
+const { hash } = require("bcryptjs");
 const AppError = require("../utils/AppError");
+const sqliteContection = require("../database/sqlite");
 
 class UsersController {
- /**
-  * index - GET para listar vários registros
-  * show - GET para exibir registro específico
-  * create - POST para criar um registro
-  * uptade - PUT para atualizar um registro
-  * delete - DELETE para remover um registro
-  * 
-  * "Boa pratica" limitar a quantidade de variáveis dentro deste arquivo, máximo 5, mínimo 1. 
-  */
+ async create ( request, response ) 
+        {
+        const { name, email, password} = request.body;
 
- create ( request, response ) {
-    
-    const {name, email, password} = request.body;
+        const database = await sqliteContection();
+        const checkUserExists = await database.get("Select * FROM users WHERE email = (?)", [email]);
+        if(checkUserExists){
+            throw new AppError("Este e-mail já está em uso.");
+        }
 
-    if(!name) {
-        throw new AppError ("O nome é obrigatório!");
-    }
+        const hasehdPassword = await hash(password, 8 );
 
-    response.status(201).json({name, email, password});
-    }
+        await database.run(
+            "INSERT INTO users(name, email, password) VALUES  (?, ?, ?)",
+            [ name, email, hasehdPassword ]
+            )
+            return response.status(201).json();
+    } 
 }
 
 module.exports = UsersController;
